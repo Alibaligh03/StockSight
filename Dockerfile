@@ -1,20 +1,18 @@
 # Use official Python image
-FROM python:3.12-slim
+FROM python:3.10-slim
 
-# Set working directory in container
+# Set working directory
 WORKDIR /app
 
-# Copy requirements first for caching
+# Copy requirements and install dependencies
 COPY requirements.txt .
-
-# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the app
+# Copy the rest of your app
 COPY . .
 
-# Expose the port your app runs on
-EXPOSE 5000
+# Expose the port that Flask will run on
+EXPOSE 7860
 
-# Command to run your app (use gunicorn for production)
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
+# Run the app
+CMD ["python", "app.py"]

@@ -1,4 +1,6 @@
 #!/bin/bash
 export FLASK_APP=app.py
-export FLASK_ENV=production
-flask run --host=0.0.0.0 --port=7860
+export FLASK_RUN_HOST=0.0.0.0
+export FLASK_RUN_PORT=7860
+flask run
+
