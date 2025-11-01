@@ -2,5 +2,6 @@ Flask==2.3.3
 pandas==2.3.3
 pandas_ta==0.4.71b0
 plotly==5.22.0
-yfinance==0.2.71
+yfinance==0.2.66
+
 
