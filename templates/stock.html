@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ ticker }} - StockSight Analysis</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <main class="stock-main">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h4 class="text-center mb-4">Technical Indicators</h4>
+
+            <div class="mb-3">
+                <a href="{{ url_for('stock_page', ticker=ticker, period=period, interval=interval, chart_type=chart_type) }}" 
+                   class="btn btn-outline w-100">
+                    Clear All Indicators
+                </a>
+            </div>
+
+            {% for category, indicators in technical_indicators.items() %}
+            <div class="indicator-category mb-4">
+                <h6 class="category-title">{{ category|title }}</h6>
+                <div class="indicator-list">
+                    {% for indicator_key, indicator_name in indicators.items() %}
+                    <div class="form-check">
+                        <input class="form-check-input indicator-checkbox" type="checkbox" 
+                               name="indicators" value="{{ indicator_key }}"
+                               id="{{ indicator_key }}"
+                               {% if indicator_key in selected_indicators %}checked{% endif %}
+                               onchange="toggleIndicator('{{ indicator_key }}')">
+                        <label class="form-check-label" for="{{ indicator_key }}">
+                            {{ indicator_name }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </aside>
+
+        <!-- Main Content -->
+        <section class="main-content">
+            <!-- Header -->
+            <div class="home-logo-section">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="StockSight Logo" class="home-logo">
+            </div>
+
+            <h1 class="text-center mb-4">{{ ticker }} - Technical Analysis</h1>
+
+            <!-- Price Info -->
+            <div class="price-info text-center">
+                {% if current_price is not none %}
+                    <h2 class="current-price">${{ "%.2f"|format(current_price) }}</h2>
+                    {% if price_change is not none and percent_change is not none %}
+                        <div class="price-change-box {% if price_change >= 0 %}positive{% else %}negative{% endif %}">
+                            <div class="price-change-amount">
+                                {{ "+" if price_change >= 0 }}${{ "%.2f"|format(price_change) }}
+                            </div>
+                            <div class="price-change-percent">
+                                ({{ "+" if percent_change >= 0 }}{{ "%.2f"|format(percent_change) }}%)
+                            </div>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <h3 class="current-price">N/A</h3>
+                    <div class="price-change-box neutral">
+                        <div class="price-change-amount">Data not available</div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Active Indicators -->
+            {% if selected_indicators %}
+            <div class="selected-indicators mb-3 text-center">
+                <strong>Active Indicators:</strong><br>
+                {% for indicator in selected_indicators %}
+                    {% for category, indicators in technical_indicators.items() %}
+                        {% if indicator in indicators %}
+                            <span class="badge bg-info me-1">
+                                {{ indicators[indicator] }}
+                                <a href="javascript:void(0)" onclick="removeIndicator('{{ indicator }}')" 
+                                   class="text-white text-decoration-none ms-1">×</a>
+                            </span>
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Chart FIRST -->
+            <div class="chart-container mb-4">
+                {{ graph_html|safe }}
+            </div>
+
+            <!-- Controls BELOW the chart -->
+            <div class="control-panel mb-4">
+                <div class="row">
+                    <div class="col-md-4 control-group">
+                        <label class="form-label fw-bold">Time Period:</label>
+                        <div class="control-buttons">
+                            {% for period_key, period_label in period_options.items() %}
+                                <a href="{{ url_for('stock_page', ticker=ticker, period=period_key, interval=interval, chart_type=chart_type, indicators=selected_indicators) }}" 
+                                   class="btn-control {% if period == period_key %}active-control{% endif %}">
+                                    {{ period_label }}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 control-group">
+                        <label class="form-label fw-bold">Interval:</label>
+                        <div class="control-buttons">
+                            {% for interval_key, interval_label in interval_options.items() %}
+                                <a href="{{ url_for('stock_page', ticker=ticker, period=period, interval=interval_key, chart_type=chart_type, indicators=selected_indicators) }}" 
+                                   class="btn-control {% if interval == interval_key %}active-control{% endif %}">
+                                    {{ interval_label }}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 control-group">
+                        <label class="form-label fw-bold">Chart Type:</label>
+                        <div class="control-buttons">
+                            {% for chart_key, chart_label in chart_type_options.items() %}
+                                <a href="{{ url_for('stock_page', ticker=ticker, period=period, interval=interval, chart_type=chart_key, indicators=selected_indicators) }}" 
+                                   class="btn-control {% if chart_type == chart_key %}active-control{% endif %}">
+                                    {{ chart_label }}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Back button -->
+            <div class="text-center mt-4">
+                <a href="/" class="btn btn-secondary">← Back to Home</a>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function toggleIndicator(indicator) {
+            const currentIndicators = {{ selected_indicators | tojson }};
+            let newIndicators;
+            if (currentIndicators.includes(indicator)) {
+                newIndicators = currentIndicators.filter(i => i !== indicator);
+            } else {
+                newIndicators = [...currentIndicators, indicator];
+            }
+            const url = new URL(window.location.href);
+            url.searchParams.delete('indicators');
+            newIndicators.forEach(ind => url.searchParams.append('indicators', ind));
+            window.location.href = url.toString();
+        }
+
+        function removeIndicator(indicator) {
+            const currentIndicators = {{ selected_indicators | tojson }};
+            const newIndicators = currentIndicators.filter(i => i !== indicator);
+            const url = new URL(window.location.href);
+            url.searchParams.delete('indicators');
+            newIndicators.forEach(ind => url.searchParams.append('indicators', ind));
+            window.location.href = url.toString();
+        }
+    </script>
+</body>
+</html>
